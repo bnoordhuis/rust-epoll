@@ -102,10 +102,13 @@ fn test_epoll_wait() {
 
   let magic = 42u64;
   assert epoll_ctl(epfd, EPOLL_CTL_ADD, 1, {events:EPOLLOUT, data:magic}) == 0;
+  assert epoll_ctl(epfd, EPOLL_CTL_ADD, 2, {events:EPOLLOUT, data:magic}) == 0;
 
-  let events: [mutable epoll_event] = [mutable {events:0i32, data:0u64}];
+  let events: [mutable epoll_event] = [
+    mutable {events:0i32, data:0u64}, {events:0i32, data:0u64}];
+
   let n = epoll_wait(epfd, events, 50);
-  assert n == 1;
+  assert n == 2;
   assert events[0].data == magic;
   assert events[0].events & EPOLLOUT == EPOLLOUT;
 }
