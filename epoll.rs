@@ -47,9 +47,16 @@ type epoll_event = {
 #[nolink]
 native mod __glibc {
   fn epoll_create1(flags: c_int) -> c_int;
+  /*
   fn epoll_ctl(epfd: c_int, op: c_int, fd: c_int, event: epoll_event) -> c_int;
   fn epoll_wait(epfd: c_int,
                 events: *mutable epoll_event,
+                maxevents: c_int,
+                timeout: c_int) -> c_int;
+  */
+  fn epoll_ctl(epfd: c_int, op: c_int, fd: c_int, event: *u8) -> c_int;
+  fn epoll_wait(epfd: c_int,
+                events: *mutable u8,
                 maxevents: c_int,
                 timeout: c_int) -> c_int;
 }
@@ -59,16 +66,61 @@ fn epoll_create1(flags: int) -> int {
 }
 
 fn epoll_ctl(epfd: int, op: int, fd: int, event: epoll_event) -> int {
+  /*
   __glibc::epoll_ctl(epfd as c_int, op as c_int, fd as c_int, event) as int
+  */
+
+  let buf: [mutable u8] = vec::init_elt_mut(12u, 0u8);
+
+  // rust as of 2012-02-06 does not support packed types, hence we have to do
+  // the packing and unpacking ourselves
+  unsafe {
+    let p1: *mutable i32 = unsafe::reinterpret_cast(ptr::mut_addr_of(buf[0]));
+    let p2: *mutable u64 = unsafe::reinterpret_cast(ptr::mut_addr_of(buf[4]));
+    *p1 = event.events;
+    *p2 = event.data;
+  }
+
+  ret __glibc::epoll_ctl(epfd as c_int,
+                         op as c_int,
+                         fd as c_int,
+                         ptr::addr_of(buf[0])) as int
 }
 
 fn epoll_wait(epfd: int, events: [mutable epoll_event], timeout: int) -> int {
+  /*
   let pevents: *mutable epoll_event = ptr::mut_addr_of(events[0]);
   let maxevents: c_int = vec::len(events) as c_int;
   ret __glibc::epoll_wait(epfd as c_int,
                           pevents,
                           maxevents,
                           timeout as c_int) as int;
+  */
+
+  let buf: [mutable u8] = vec::init_elt_mut(12u * vec::len(events), 0u8);
+
+  let nevents = __glibc::epoll_wait(epfd as c_int,
+                                    ptr::mut_addr_of(buf[0]),
+                                    vec::len(events) as c_int,
+                                    timeout as c_int) as int;
+
+  if (nevents == -1) {
+    ret -1;
+  }
+
+  // rust as of 2012-02-06 does not support packed types, hence we have to do
+  // the packing and unpacking ourselves
+  let i = 0;
+  while (i < nevents) {
+    unsafe {
+      let p1: *i32 = unsafe::reinterpret_cast(ptr::addr_of(buf[i * 12]));
+      let p2: *u64 = unsafe::reinterpret_cast(ptr::addr_of(buf[i * 12 + 4]));
+      events[i] = {events: *p1, data: *p2};
+    }
+    i += 1;
+  }
+
+  ret nevents;
 }
 
 #[test]
