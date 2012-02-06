@@ -20,6 +20,22 @@
        vers = "1.0",
        author = "Ben Noordhuis <info@bnoordhuis.nl>")];
 
+//export EPOLL_NONBLOCK;
+export EPOLL_CLOEXEC;
+export EPOLL_CTL_ADD;
+export EPOLL_CTL_DEL;
+export EPOLLIN;
+export EPOLLPRI;
+export EPOLLOUT;
+export EPOLLERR;
+export EPOLLHUP;
+export EPOLLONESHOT;
+export EPOLLET;
+export epoll_event;
+export epoll_create1;
+export epoll_ctl;
+export epoll_wait;
+
 use std; // required by the tests
 
 import c_int = ctypes::c_int;
