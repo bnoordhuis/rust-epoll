@@ -32,6 +32,7 @@ export EPOLLHUP;
 export EPOLLONESHOT;
 export EPOLLET;
 export epoll_event;
+export epoll_create;
 export epoll_create1;
 export epoll_ctl;
 export epoll_wait;
@@ -75,6 +76,10 @@ native mod __glibc {
                 events: *mutable u8,
                 maxevents: c_int,
                 timeout: c_int) -> c_int;
+}
+
+fn epoll_create() -> int {
+  epoll_create1(0)
 }
 
 fn epoll_create1(flags: int) -> int {
