@@ -39,7 +39,7 @@ export epoll_wait;
 
 use std; // required by the tests
 
-import c_int = ctypes::c_int;
+import c_int = libc::c_int;
 
 //const EPOLL_NONBLOCK: int = 0x800;
 const EPOLL_CLOEXEC: int = 0x80000;
@@ -67,13 +67,13 @@ native mod __glibc {
   /*
   fn epoll_ctl(epfd: c_int, op: c_int, fd: c_int, event: epoll_event) -> c_int;
   fn epoll_wait(epfd: c_int,
-                events: *mutable epoll_event,
+                events: *mut epoll_event,
                 maxevents: c_int,
                 timeout: c_int) -> c_int;
   */
   fn epoll_ctl(epfd: c_int, op: c_int, fd: c_int, event: *u8) -> c_int;
   fn epoll_wait(epfd: c_int,
-                events: *mutable u8,
+                events: *mut u8,
                 maxevents: c_int,
                 timeout: c_int) -> c_int;
 }
@@ -91,13 +91,13 @@ fn epoll_ctl(epfd: int, op: int, fd: int, event: epoll_event) -> int {
   __glibc::epoll_ctl(epfd as c_int, op as c_int, fd as c_int, event) as int
   */
 
-  let buf: [mutable u8] = vec::init_elt_mut(12u, 0u8);
+  let buf: [mut u8] = vec::to_mut(vec::from_elem(12u, 0u8));
 
   // rust as of 2012-02-06 does not support packed types, hence we have to do
   // the packing and unpacking ourselves
   unsafe {
-    let p1: *mutable i32 = unsafe::reinterpret_cast(ptr::mut_addr_of(buf[0]));
-    let p2: *mutable u64 = unsafe::reinterpret_cast(ptr::mut_addr_of(buf[4]));
+    let p1: *mut i32 = unsafe::reinterpret_cast(ptr::mut_addr_of(buf[0]));
+    let p2: *mut u64 = unsafe::reinterpret_cast(ptr::mut_addr_of(buf[4]));
     *p1 = event.events;
     *p2 = event.data;
   }
@@ -108,9 +108,9 @@ fn epoll_ctl(epfd: int, op: int, fd: int, event: epoll_event) -> int {
                          ptr::addr_of(buf[0])) as int
 }
 
-fn epoll_wait(epfd: int, events: [mutable epoll_event], timeout: int) -> int {
+fn epoll_wait(epfd: int, events: [mut epoll_event], timeout: int) -> int {
   /*
-  let pevents: *mutable epoll_event = ptr::mut_addr_of(events[0]);
+  let pevents: *mut epoll_event = ptr::mut_addr_of(events[0]);
   let maxevents: c_int = vec::len(events) as c_int;
   ret __glibc::epoll_wait(epfd as c_int,
                           pevents,
@@ -118,7 +118,7 @@ fn epoll_wait(epfd: int, events: [mutable epoll_event], timeout: int) -> int {
                           timeout as c_int) as int;
   */
 
-  let buf: [mutable u8] = vec::init_elt_mut(12u * vec::len(events), 0u8);
+  let buf: [mut u8] = vec::to_mut(vec::from_elem(12u * vec::len(events), 0u8));
 
   let nevents = __glibc::epoll_wait(epfd as c_int,
                                     ptr::mut_addr_of(buf[0]),
@@ -131,7 +131,7 @@ fn epoll_wait(epfd: int, events: [mutable epoll_event], timeout: int) -> int {
 
   // rust as of 2012-02-06 does not support packed types, hence we have to do
   // the packing and unpacking ourselves
-  let i = 0;
+  let mut i = 0;
   while (i < nevents) {
     unsafe {
       let p1: *i32 = unsafe::reinterpret_cast(ptr::addr_of(buf[i * 12]));
@@ -177,8 +177,8 @@ fn test_epoll_wait() {
   assert epoll_ctl(epfd, EPOLL_CTL_ADD, 1, {events:EPOLLOUT, data:magic}) == 0;
   assert epoll_ctl(epfd, EPOLL_CTL_ADD, 2, {events:EPOLLOUT, data:magic}) == 0;
 
-  let events: [mutable epoll_event] = [
-    mutable {events:0i32, data:0u64}, {events:0i32, data:0u64}];
+  let events: [mut epoll_event] = [
+    mut {events:0i32, data:0u64}, {events:0i32, data:0u64}];
 
   let n = epoll_wait(epfd, events, 50);
   assert n == 2;
