@@ -1,0 +1,10 @@
+[package]
+
+name = "epoll"
+version = "0.0.2"
+authors = ["Ben Noordhuis <info@bnoordhuis.nl>"]
+
+[lib]
+
+name = "epoll"
+path = "epoll.rs"
