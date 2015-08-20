@@ -12,6 +12,7 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+#![feature(custom_attribute)]
 #![license = "ISC"]
 
 #![link(name = "epoll",
@@ -74,7 +75,7 @@ pub fn epoll_ctl(epfd: i32, op: u32, fd: i32,
 
 pub fn epoll_wait(epfd: i32, events: &mut [epoll_event],
                   timeout: i32) -> i32 {
-  unsafe { __glibc::epoll_wait(epfd, events.as_mut_slice().as_mut_ptr(),
+  unsafe { __glibc::epoll_wait(epfd, events.as_mut_ptr(),
                                events.len() as i32, timeout) }
 }
 
